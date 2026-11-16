@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@1,400;1,500&display=swap" rel="stylesheet">
   <link rel="preload" href="assets/kort.png" as="image">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
   <noscript><style>.envelope,.tagline{display:none}.card{visibility:visible}</style></noscript>
 </head>
 <body>
@@ -52,6 +52,11 @@
         <p class="signoff">same procedure as every year</p>
       </div>
     </article>
+    </div>
+
+    <div class="rsvp-actions" id="rsvp-actions" hidden>
+      <button type="button" class="btn btn-primary btn-script" data-open-rsvp>Kommer du?</button>
+      <button type="button" class="btn btn-link" id="board-link">Se tavla ↓</button>
     </div>
 
     <!-- Teksten på konvolutten ligger i .tap-label og aria-label på knappen under. -->
@@ -121,6 +126,46 @@
     </div>
   </main>
 
-  <script src="script.js?v=5"></script>
+  <!-- ✏️ TEKST: tavla og «Kommer du?»-skjemaet ============================== -->
+
+  <section class="board" id="board" hidden aria-labelledby="board-title">
+    <h2 class="board-title" id="board-title">Hvem kommer?</h2>
+    <p class="board-sub" id="board-sub" aria-live="polite"></p>
+    <div class="board-rows" id="board-rows"></div>
+    <p class="board-note" id="board-note"></p>
+    <button type="button" class="btn btn-primary" data-open-rsvp>Heng opp din hilsen</button>
+  </section>
+
+  <dialog class="rsvp" id="rsvp" aria-labelledby="rsvp-title">
+    <form id="rsvp-form" novalidate>
+      <h2 class="rsvp-title" id="rsvp-title">Kommer du?</h2>
+      <p class="rsvp-help">Skriv navnet ditt og en liten hilsen, så henger vi den opp på tavla. Kan du ikke komme? Skriv det i hilsenen.</p>
+      <label class="field">
+        <span>Navn</span>
+        <input name="navn" required maxlength="60" autocomplete="name">
+      </label>
+      <label class="field">
+        <span>Hilsen</span>
+        <textarea name="hilsen" rows="4" maxlength="400" placeholder="Gleder meg!"></textarea>
+      </label>
+      <!-- Felle for spam-roboter: skjult for mennesker -->
+      <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <p class="rsvp-status" id="rsvp-status" role="status"></p>
+      <div class="rsvp-buttons">
+        <button type="button" class="btn btn-ghost" id="rsvp-cancel">Avbryt</button>
+        <button type="submit" class="btn btn-primary" id="rsvp-submit">Heng opp hilsenen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ==================================================================== -->
+
+  <script>
+    // ✏️ Lim inn Web app-URL-en fra Google Apps Script mellom anførselstegnene
+    //    (se google-apps-script/OPPSETT.md). Står den tom, kjører tavla i
+    //    demo-modus og svarene lagres bare i din egen nettleser.
+    window.RSVP_URL = "";
+  </script>
+  <script src="script.js?v=6"></script>
 </body>
 </html>

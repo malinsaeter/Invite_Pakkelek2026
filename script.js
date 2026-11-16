@@ -98,6 +98,7 @@
     tagline.style.visibility = "hidden";
     card.removeAttribute("aria-hidden");
     card.focus({ preventScroll: true });
+    showRsvp();
   }
 
   /* ---------- Åpne-animasjonen ---------- */
@@ -231,7 +232,255 @@
     requestAnimationFrame(frame);
   }
 
+  /* ---------- «Kommer du?» og tavla ---------- */
+
+  const API = (window.RSVP_URL || "").trim();
+  const DEMO_KEY = "pakkelek-demo-gjester";
+  const actions = document.getElementById("rsvp-actions");
+  const board = document.getElementById("board");
+  const rowsEl = document.getElementById("board-rows");
+  const boardSub = document.getElementById("board-sub");
+  const boardNote = document.getElementById("board-note");
+  const dialog = document.getElementById("rsvp");
+  const form = document.getElementById("rsvp-form");
+  const status = document.getElementById("rsvp-status");
+  const submitBtn = document.getElementById("rsvp-submit");
+
+  let guests = null; // null = ikke hentet ennå
+  let loadError = false;
+
+  function readDemo() {
+    try {
+      return JSON.parse(localStorage.getItem(DEMO_KEY)) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  async function fetchGuests() {
+    if (!API) return readDemo();
+    const res = await fetch(API, { cache: "no-store" });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.feil || "Ukjent feil");
+    return data.gjester;
+  }
+
+  async function postGuest(entry) {
+    if (!API) {
+      const list = readDemo();
+      list.push({ navn: entry.navn, hilsen: entry.hilsen, tid: new Date().toISOString() });
+      try {
+        localStorage.setItem(DEMO_KEY, JSON.stringify(list));
+      } catch {}
+      return list;
+    }
+    // text/plain unngår CORS-preflight, som Google Apps Script ikke støtter
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(entry),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.feil || "Ukjent feil");
+    return data.gjester;
+  }
+
+  async function loadGuests() {
+    try {
+      guests = await fetchGuests();
+      loadError = false;
+    } catch (err) {
+      console.error(err);
+      loadError = true;
+    }
+    if (!board.hidden) renderBoard();
+  }
+
+  /* Tegning av tavla */
+
+  const SAG = 22; // hvor mye båndet henger ned på midten
+  const TOP = 12; // båndets høyde over lappene i endene
+
+  function el(tag, cls) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    return e;
+  }
+
+  function svgEl(tag, attrs) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  function ribbon(width) {
+    const h = TOP + SAG + 20;
+    const svg = svgEl("svg", { class: "ribbon", width, height: h, viewBox: `0 0 ${width} ${h}`, "aria-hidden": "true" });
+    const d = `M6 ${TOP} Q ${width / 2} ${TOP + 2 * SAG} ${width - 6} ${TOP}`;
+    svg.append(
+      svgEl("path", { d, fill: "none", stroke: "rgba(0,0,0,.3)", "stroke-width": 9, transform: "translate(0 3)" }),
+      svgEl("path", { d, fill: "none", stroke: "#b8935a", "stroke-width": 7, "stroke-linecap": "round" }),
+      svgEl("path", { d, fill: "none", stroke: "#f6e4b8", "stroke-width": 2.4, "stroke-linecap": "round", transform: "translate(0 -1.2)", opacity: 0.9 })
+    );
+    // Små sløyfer i hver ende
+    [16, width - 16].forEach((x) => {
+      const g = svgEl("g", { transform: `translate(${x} ${TOP + 1})` });
+      const silk = { fill: "#c9a468", stroke: "#8f6d3a", "stroke-width": 0.8 };
+      g.append(
+        svgEl("path", { d: "M-1 4 L-9 24 L-5 22 L-3 26 Z", ...silk }),
+        svgEl("path", { d: "M1 4 L9 24 L5 22 L3 26 Z", ...silk }),
+        svgEl("ellipse", { cx: -9, cy: -3, rx: 10, ry: 6, transform: "rotate(-20 -9 -3)", ...silk }),
+        svgEl("ellipse", { cx: 9, cy: -3, rx: 10, ry: 6, transform: "rotate(20 9 -3)", ...silk }),
+        svgEl("circle", { cx: 0, cy: 0, r: 4, fill: "#e2c48c", stroke: "#8f6d3a", "stroke-width": 0.8 })
+      );
+      svg.append(g);
+    });
+    return svg;
+  }
+
+  function hash(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
+
+  function makeTag(g, i) {
+    const tag = el("figure", "tag");
+    tag.style.setProperty("--r", `${((hash(g.navn + i) % 9) - 4) * 0.7}deg`);
+    tag.style.setProperty("--d", `${-(hash(g.navn) % 50) / 10}s`);
+    const name = el("figcaption", "tag-name");
+    name.textContent = g.navn;
+    tag.append(name);
+    if (g.hilsen) {
+      const text = el("p", "tag-text");
+      text.textContent = g.hilsen;
+      tag.append(text);
+    }
+    return tag;
+  }
+
+  function renderBoard(highlightLast) {
+    rowsEl.textContent = "";
+    boardNote.textContent = API
+      ? ""
+      : "Demo-modus: tavla er ikke koblet til Google Regneark ennå, så svarene lagres bare i denne nettleseren.";
+
+    if (guests === null && !loadError) {
+      boardSub.textContent = "Henter tavla …";
+      return;
+    }
+    if (loadError) {
+      boardSub.textContent = "Klarte ikke å hente tavla akkurat nå. Prøv å laste siden på nytt.";
+      return;
+    }
+    if (!guests.length) {
+      boardSub.textContent = "Ingen hilsener på snora ennå – bli den første!";
+      return;
+    }
+    boardSub.textContent = guests.length === 1 ? "1 hilsen på snora" : `${guests.length} hilsener på snora`;
+
+    const width = rowsEl.clientWidth;
+    const cord = parseFloat(getComputedStyle(board).getPropertyValue("--cord")) || 26;
+    const perRow = Math.max(2, Math.min(5, Math.floor(width / 175)));
+    let last = null;
+
+    for (let i = 0; i < guests.length; i += perRow) {
+      const row = el("div", "row");
+      row.style.paddingTop = `${TOP + cord}px`;
+      row.style.paddingBottom = `${SAG}px`;
+      row.append(ribbon(width));
+      const tags = el("div", "row-tags");
+      guests.slice(i, i + perRow).forEach((g, j) => {
+        last = makeTag(g, i + j);
+        tags.append(last);
+      });
+      row.append(tags);
+      rowsEl.append(row);
+
+      // Heng hver lapp på det punktet der båndet faktisk er
+      tags.querySelectorAll(".tag").forEach((t) => {
+        const x = (t.offsetLeft + t.offsetWidth / 2) / width;
+        t.style.marginTop = `${4 * SAG * x * (1 - x)}px`;
+      });
+    }
+
+    if (highlightLast && last) {
+      last.classList.add("new");
+      last.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+    }
+  }
+
+  function showRsvp() {
+    actions.hidden = false;
+    actions.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], {
+      duration: 600,
+      easing: "ease-out",
+    });
+    board.hidden = false;
+    renderBoard();
+  }
+
+  function scrollToBoard() {
+    board.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  }
+
+  /* Skjemaet */
+
+  function openForm() {
+    status.textContent = "";
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+    form.navn.focus();
+  }
+
+  function closeForm() {
+    if (typeof dialog.close === "function") dialog.close();
+    else dialog.removeAttribute("open");
+  }
+
+  document.querySelectorAll("[data-open-rsvp]").forEach((b) => b.addEventListener("click", openForm));
+  document.getElementById("board-link").addEventListener("click", scrollToBoard);
+  document.getElementById("rsvp-cancel").addEventListener("click", closeForm);
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) closeForm(); // klikk utenfor skjemaet
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const navn = form.navn.value.trim();
+    const hilsen = form.hilsen.value.trim();
+    if (!navn) {
+      status.textContent = "Skriv inn navnet ditt først.";
+      form.navn.focus();
+      return;
+    }
+    submitBtn.disabled = true;
+    status.textContent = "Henger opp hilsenen …";
+    try {
+      guests = await postGuest({ navn, hilsen, website: form.website.value });
+      loadError = false;
+      form.reset();
+      closeForm();
+      renderBoard(true);
+    } catch (err) {
+      console.error(err);
+      status.textContent = "Det gikk ikke å sende. Sjekk nettet og prøv igjen.";
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  let resizeTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (!board.hidden) renderBoard();
+    }, 150);
+  });
+
   /* ---------- Oppstart ---------- */
+
+  loadGuests(); // hent tavla i bakgrunnen mens konvolutten åpnes
 
   startSnow();
 
