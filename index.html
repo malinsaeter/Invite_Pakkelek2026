@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@1,400;1,500&display=swap" rel="stylesheet">
   <link rel="preload" href="assets/kort.png" as="image">
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
   <noscript><style>.envelope,.tagline{display:none}.card{visibility:visible}</style></noscript>
 </head>
 <body>
@@ -33,6 +33,11 @@
     <!-- ✏️ ALL TEKST PÅ SIDEN – endre her ================================== -->
 
     <p class="tagline" id="tagline">same procedure as every year...</p>
+
+    <div class="countdown countdown-start" id="countdown-start" data-countdown>
+      <p class="countdown-label">snart er det grøtfest</p>
+      <div class="countdown-units" role="timer" aria-live="off"></div>
+    </div>
 
     <div class="card-clip" id="card-clip">
     <article class="card" id="card" tabindex="-1" aria-label="Invitasjon">
@@ -129,6 +134,11 @@
   <!-- ✏️ TEKST: tavla og «Kommer du?»-skjemaet ============================== -->
 
   <section class="board" id="board" hidden aria-labelledby="board-title">
+    <div class="countdown countdown-board" data-countdown>
+      <p class="countdown-label">Nedtelling til grøtfesten</p>
+      <div class="countdown-units" role="timer" aria-live="off"></div>
+    </div>
+
     <h2 class="board-title" id="board-title">Hvem kommer?</h2>
     <p class="board-sub" id="board-sub" aria-live="polite"></p>
     <div class="board-rows" id="board-rows"></div>
@@ -164,8 +174,17 @@
     // ✏️ Lim inn Web app-URL-en fra Google Apps Script mellom anførselstegnene
     //    (se google-apps-script/OPPSETT.md). Står den tom, kjører tavla i
     //    demo-modus og svarene lagres bare i din egen nettleser.
+    // ✏️ Nedtellingen: når festen starter (norsk tid, +01:00 om vinteren),
+    //    og hva som vises når den er i gang / ferdig.
+    window.NEDTELLING = {
+      start: "2026-12-21T19:00:00+01:00",
+      varighetTimer: 6,
+      underveis: "Festen er i gang! 🎄",
+      etter: "Takk for i år – same procedure next year!",
+    };
+
     window.RSVP_URL = "https://script.google.com/macros/s/AKfycbypBN_rjbx74lLX-kDnk83ZBo04ZbDZYeprGMw6kq7u3DqnJgvutSjqC_gKdf1GvfQI_Q/exec";
   </script>
-  <script src="script.js?v=7"></script>
+  <script src="script.js?v=8"></script>
 </body>
 </html>

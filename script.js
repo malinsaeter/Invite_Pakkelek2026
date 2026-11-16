@@ -8,6 +8,7 @@
   const opener = document.getElementById("opener");
   const tagline = document.getElementById("tagline");
   const cardClip = document.getElementById("card-clip");
+  const countdownStart = document.getElementById("countdown-start");
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const NS = "http://www.w3.org/2000/svg";
@@ -96,6 +97,7 @@
     cardClip.style.clipPath = "none";
     envelope.style.display = "none";
     tagline.style.visibility = "hidden";
+    countdownStart.hidden = true;
     card.removeAttribute("aria-hidden");
     card.focus({ preventScroll: true });
     showRsvp();
@@ -119,6 +121,7 @@
     const g = geometry();
     const fade = { duration: 700, easing: "ease-out", fill: "forwards" };
     tagline.animate([{ opacity: 1 }, { opacity: 0 }], fade);
+    countdownStart.animate([{ opacity: 1 }, { opacity: 0 }], fade);
     envelope.querySelector(".env-glow").animate([{ opacity: 0.6 }, { opacity: 0 }], fade);
 
     // 1) Klaffen vipper opp (0–90°), bytter lag, og fortsetter bakover (90–180°)
@@ -478,7 +481,73 @@
     }, 150);
   });
 
+  /* ---------- Nedtelling ---------- */
+
+  function startCountdown() {
+    const cfg = window.NEDTELLING || {};
+    const start = new Date(cfg.start).getTime();
+    if (Number.isNaN(start)) return;
+    const end = start + (cfg.varighetTimer || 6) * 3600e3;
+
+    const units = [
+      ["dag", "dager", 86400],
+      ["time", "timer", 3600],
+      ["minutt", "minutter", 60],
+      ["sekund", "sekunder", 1],
+    ];
+
+    const blocks = [...document.querySelectorAll("[data-countdown]")].map((root) => {
+      const wrap = root.querySelector(".countdown-units");
+      const cells = units.map(() => {
+        const unit = el("span", "cd-unit");
+        const num = el("span", "cd-num");
+        const lbl = el("span", "cd-lbl");
+        unit.append(num, lbl);
+        wrap.append(unit);
+        return { num, lbl };
+      });
+      return { root, wrap, cells };
+    });
+
+    let timer;
+    function tick() {
+      const now = Date.now();
+      if (now >= start) {
+        const msg = now < end ? cfg.underveis : cfg.etter;
+        blocks.forEach(({ root, wrap }) => {
+          root.querySelector(".countdown-label").hidden = true;
+          wrap.textContent = "";
+          const p = el("p", "countdown-message");
+          p.textContent = msg;
+          wrap.append(p);
+        });
+        if (now >= end) return; // ferdig – ingen flere oppdateringer
+        clearTimeout(timer);
+        timer = setTimeout(tick, end - now + 1000);
+        return;
+      }
+      let rest = Math.floor((start - now) / 1000);
+      const values = units.map(([, , size]) => {
+        const v = Math.floor(rest / size);
+        rest -= v * size;
+        return v;
+      });
+      blocks.forEach(({ cells }) => {
+        cells.forEach((c, i) => {
+          const v = values[i];
+          const text = i === 0 ? String(v) : String(v).padStart(2, "0");
+          if (c.num.textContent !== text) c.num.textContent = text;
+          c.lbl.textContent = v === 1 ? units[i][0] : units[i][1];
+        });
+      });
+      timer = setTimeout(tick, 1000 - (now % 1000) + 5);
+    }
+    tick();
+  }
+
   /* ---------- Oppstart ---------- */
+
+  startCountdown();
 
   loadGuests(); // hent tavla i bakgrunnen mens konvolutten åpnes
 
