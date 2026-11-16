@@ -96,23 +96,6 @@
     card.focus({ preventScroll: true });
   }
 
-  /* ---------- Redusert bevegelse: enkel overtoning fra konvolutt til kort ---------- */
-
-  async function fadeToCard() {
-    card.style.opacity = "0"; // kortet skal ikke synes gjennom konvolutten mens den toner ut
-    const out = { duration: 500, easing: "ease-in", fill: "forwards" };
-    const fadeOut = [envelope, tagline].map((el) =>
-      el.animate([{ opacity: 1 }, { opacity: 0 }], out).finished
-    );
-    await Promise.all(fadeOut);
-    envelope.style.display = "none";
-    tagline.style.visibility = "hidden";
-    card.style.transform = "none";
-    card.style.opacity = "";
-    await card.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 800, easing: "ease-out" }).finished;
-    finish();
-  }
-
   /* ---------- Åpne-animasjonen ---------- */
 
   async function openEnvelope() {
@@ -121,7 +104,6 @@
     opener.disabled = true;
     opener.style.display = "none";
 
-    if (reduceMotion) return fadeToCard();
 
     // Stopp pustingen mykt
     const current = getComputedStyle(scene).transform;
