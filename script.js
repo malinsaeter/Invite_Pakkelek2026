@@ -96,17 +96,21 @@
     card.focus({ preventScroll: true });
   }
 
-  /* ---------- Redusert bevegelse: rett til kortet ---------- */
+  /* ---------- Redusert bevegelse: enkel overtoning fra konvolutt til kort ---------- */
 
-  function showCardDirectly() {
-    opened = true;
-    scene.classList.remove("breathing");
+  async function fadeToCard() {
+    card.style.opacity = "0"; // kortet skal ikke synes gjennom konvolutten mens den toner ut
+    const out = { duration: 500, easing: "ease-in", fill: "forwards" };
+    const fadeOut = [envelope, tagline].map((el) =>
+      el.animate([{ opacity: 1 }, { opacity: 0 }], out).finished
+    );
+    await Promise.all(fadeOut);
     envelope.style.display = "none";
     tagline.style.visibility = "hidden";
     card.style.transform = "none";
-    card.classList.add("ready");
-    card.removeAttribute("aria-hidden");
-    card.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 900, easing: "ease-out" });
+    card.style.opacity = "";
+    await card.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 800, easing: "ease-out" }).finished;
+    finish();
   }
 
   /* ---------- Åpne-animasjonen ---------- */
@@ -116,6 +120,8 @@
     opened = true;
     opener.disabled = true;
     opener.style.display = "none";
+
+    if (reduceMotion) return fadeToCard();
 
     // Stopp pustingen mykt
     const current = getComputedStyle(scene).transform;
@@ -178,12 +184,8 @@
 
   card.setAttribute("aria-hidden", "true");
 
-  if (reduceMotion) {
-    showCardDirectly();
-  } else {
-    placeCardInEnvelope();
-    scene.classList.add("breathing");
-    opener.addEventListener("click", openEnvelope); // dekker mus, touch og Enter/mellomrom
-    window.addEventListener("resize", placeCardInEnvelope);
-  }
+  placeCardInEnvelope();
+  if (!reduceMotion) scene.classList.add("breathing");
+  opener.addEventListener("click", openEnvelope); // dekker mus, touch og Enter/mellomrom
+  window.addEventListener("resize", placeCardInEnvelope);
 })();
