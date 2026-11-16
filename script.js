@@ -7,6 +7,7 @@
   const card = document.getElementById("card");
   const opener = document.getElementById("opener");
   const tagline = document.getElementById("tagline");
+  const cardClip = document.getElementById("card-clip");
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const NS = "http://www.w3.org/2000/svg";
@@ -74,6 +75,7 @@
 
     return {
       H,
+      clipBottom: cardClip.offsetHeight - (ey + H) + 2,
       start: `translate(${icx - fcx}px, ${icy - fcy}px) scale(${s})`,
       peek: `translate(${icx - fcx}px, ${icy - fcy - lift}px) scale(${s})`,
     };
@@ -90,6 +92,8 @@
   function finish() {
     card.style.transform = "none";
     card.getAnimations().forEach((a) => a.cancel());
+    cardClip.getAnimations().forEach((a) => a.cancel());
+    cardClip.style.clipPath = "none";
     envelope.style.display = "none";
     tagline.style.visibility = "hidden";
     card.removeAttribute("aria-hidden");
@@ -103,7 +107,6 @@
     opened = true;
     opener.disabled = true;
     opener.style.display = "none";
-
 
     // Stopp pustingen mykt
     const current = getComputedStyle(scene).transform;
@@ -142,16 +145,24 @@
     await wait(120);
 
     // 3) Konvolutten glir ned og fader ut, kortet flytter seg til midten og blir større
-    const parts = envelope.querySelectorAll(".env-back, .env-front, .env-floor, .flap");
-    parts.forEach((el) => {
+    const out = { duration: 1050, easing: "cubic-bezier(.4, 0, .7, .3)", fill: "forwards" };
+    envelope.querySelectorAll(".env-back, .env-front, .flap").forEach((el) => {
       el.animate(
         [
           { translate: "0 0", opacity: 1 },
           { translate: `0 ${g.H * 0.6}px`, opacity: 0 },
         ],
-        { duration: 1050, easing: "cubic-bezier(.4, 0, .7, .3)", fill: "forwards" }
+        out
       );
     });
+    // Slipp opp klippingen under konvolutten, så resten av kortet kommer til syne
+    cardClip.animate(
+      [
+        { clipPath: `inset(0px 0px ${g.clipBottom}px 0px)` },
+        { clipPath: "inset(-60px -60px -60px -60px)" },
+      ],
+      out
+    );
 
     await card.animate([{ transform: g.peek }, { transform: "none" }], {
       duration: 1250,
@@ -162,7 +173,67 @@
     finish();
   }
 
+  /* ---------- Snø ---------- */
+
+  function startSnow() {
+    const canvas = document.getElementById("snow");
+    const ctx = canvas.getContext("2d");
+    let w = 0;
+    let h = 0;
+    let flakes = [];
+
+    const makeFlake = (y) => {
+      const r = 0.8 + Math.random() * 2.2;
+      return {
+        x: Math.random() * w,
+        y: y ?? Math.random() * h,
+        r,
+        speed: 12 + r * 14 + Math.random() * 10, // px per sekund
+        sway: 8 + Math.random() * 18,
+        phase: Math.random() * Math.PI * 2,
+        alpha: 0.35 + Math.random() * 0.5,
+      };
+    };
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const count = Math.min(140, Math.round((w * h) / 9000));
+      while (flakes.length < count) flakes.push(makeFlake());
+      flakes.length = count;
+    }
+
+    let last = performance.now();
+    function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      ctx.clearRect(0, 0, w, h);
+      for (const f of flakes) {
+        f.y += f.speed * dt;
+        f.phase += dt * 0.8;
+        if (f.y - f.r > h) Object.assign(f, makeFlake(-5));
+        const x = f.x + Math.sin(f.phase) * f.sway;
+        ctx.globalAlpha = f.alpha;
+        ctx.beginPath();
+        ctx.arc(x, f.y, f.r, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff8ec";
+        ctx.fill();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+    requestAnimationFrame(frame);
+  }
+
   /* ---------- Oppstart ---------- */
+
+  startSnow();
 
   card.setAttribute("aria-hidden", "true");
 

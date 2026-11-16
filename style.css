@@ -1,5 +1,7 @@
 :root {
   --bg: #3d0006;
+  --bg-stripe: #48070e;   /* den litt lysere stripen */
+  --stripe: 14px;         /* bredden på hver stripe */
   --cream: #f3e6c8;
   --ink: #8a1520;
 
@@ -34,6 +36,22 @@ body {
   margin: 0;
   overflow: hidden;
   background: var(--bg);
+}
+
+body {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--bg) 0 var(--stripe),
+    var(--bg-stripe) var(--stripe) calc(var(--stripe) * 2)
+  );
+}
+
+.snow {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 body {
@@ -110,16 +128,6 @@ body {
   height: 100%;
   border-radius: 2px;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-}
-
-/* Skjuler den delen av kortet som stikker ut under konvolutten */
-.env-floor {
-  z-index: 3;
-  top: calc(100% - 2px);
-  left: -150vw;
-  width: 300vw;
-  height: 200vh;
-  background: var(--bg);
 }
 
 .env-front {
@@ -199,6 +207,14 @@ body {
 }
 
 /* ---------- Kort ---------- */
+
+/* Klipper bort den delen av kortet som stikker ut under konvolutten */
+.card-clip {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  clip-path: inset(0 0 calc(100% - var(--env-cy) - var(--H) / 2 + 2px) 0);
+}
 
 .card {
   position: absolute;

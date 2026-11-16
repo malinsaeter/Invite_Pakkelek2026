@@ -23,16 +23,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@1,400;1,500&display=swap" rel="stylesheet">
   <link rel="preload" href="assets/kort.png" as="image">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
   <noscript><style>.envelope,.tagline{display:none}.card{visibility:visible}</style></noscript>
 </head>
 <body>
+  <canvas class="snow" id="snow" aria-hidden="true"></canvas>
   <main class="scene" id="scene">
 
     <!-- ✏️ ALL TEKST PÅ SIDEN – endre her ================================== -->
 
     <p class="tagline" id="tagline">same procedure as every year...</p>
 
+    <div class="card-clip" id="card-clip">
     <article class="card" id="card" tabindex="-1" aria-label="Invitasjon">
       <img class="card-bg" src="assets/kort.png" alt="" width="622" height="951">
       <div class="card-text">
@@ -50,6 +52,7 @@
         <p class="signoff">same procedure as every year</p>
       </div>
     </article>
+    </div>
 
     <!-- Teksten på konvolutten ligger i .tap-label og aria-label på knappen under. -->
     <!-- ==================================================================== -->
@@ -67,8 +70,6 @@
         </defs>
         <rect width="400" height="300" fill="url(#g-back)"/>
       </svg>
-
-      <div class="env-floor" aria-hidden="true"></div>
 
       <svg class="env-front" viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
         <defs>
@@ -120,6 +121,6 @@
     </div>
   </main>
 
-  <script src="script.js?v=4"></script>
+  <script src="script.js?v=5"></script>
 </body>
 </html>
